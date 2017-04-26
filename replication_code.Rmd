@@ -1,0 +1,183 @@
+---
+title: "Replication code"
+author: Scott Telfer^[Department of Orthopaedics and Sports Medicine, University of Washington], Nick Obradovich^[Belfer Center for Science and International Affairs, Kennedy School of Government, Harvard University.] ^[Media Lab, Massachusetts Institute of Technology.]
+date: ""
+output: 
+  html_document:
+    fig_caption: true
+---
+
+```{r load packages and data, echo=F, message=F, warning=F, include=F}
+knitr::opts_chunk$set(fig.path='figures/', warning=F, message=F, fig.retina=1, cache=T, autodep=T, echo=F, cache.lazy = FALSE)
+
+rm(list = ls())
+
+library(ggthemes) #themes for plotting
+library(sandwich) #robust se estimator
+library(lmtest) #lm functions
+library(ordinal) #ologit funcitons
+library(memisc) #import stata data
+library(ggmap) #make nice plots with ggplot mapping
+library(ggplot2) #nice plots
+library(Hmisc) #multipurpose package
+library(RColorBrewer) #make nice colors
+library(grid) #plotting package
+library(MASS) #multipurpose package
+library(gplots) #nice plotting
+library(lfe) #run linear fixed effects models
+library(stargazer) #output nice tables
+library(lubridate) #deal with dates
+library(zoo) #deal with dates
+library(reshape2) #powerful reshape package
+library(sp) #general spatial class package
+library(gstat) #geostat package
+library(spacetime) #store data in proper spatial/temporal class
+library(raster) #convert to raster and vice versa
+library(maptools) #plot and modify shapefiles
+library(rgeos) #for use with maptools for shapefiles
+library(rgdal) #for reading in shapefiles
+library(RSAGA) #needed for spatial downscaling
+library(RCurl) #also needed for spatial downscaling
+library(dplyr) #for data frame manipulation functions
+library(plyr) #for additional manipulation functions
+library(data.table) #for data.table functions
+library(foreign) #for reading in .dta files
+library(parallel) #for parallel processing functions
+library(foreach) #for plyr parallel
+library(doMC) #run multicore processes
+library(caTools) #functions for fast running mean and sd
+library(ncdf4) #tools for netCDF packages
+library(stringr) #string tools
+#library(kfigr) #figure referencing for markdown
+library(knitr) #knitting
+library(pander) #pandering
+library(rasterVis) # plotting rasters
+library(ggExtra) # for marginal histograms
+library(gridExtra) # for multiplots
+library(gtable) # for plots
+library(bit64) # long integers
+
+# historical data and functions
+load('./data.Rdata')
+source('./binned_plot_function.R')
+
+# set cores for parallel processing
+registerDoMC(4)
+```
+
+# Main results
+
+```{r figure1, dev='CairoPNG', fig.width=25, fig.height=9, dpi=300, fig.cap="**Maximum temperatures and searches for pain symptoms.** This figure draws from the estimation of the model in Equation 1 on the weekly search behavior of citizens in 45 US cities between 2011 and 2015. It plots the estimated search activity associated with each maximum temperature bin for each search topic. Search activity for hip pain (panel (a)) and knee pain (panel (b)) increases up to 25&#x2103;-30&#x2103; (77-86F) and begins to decline past that point, though the effects of hotter temperatures are estimated with higher uncertainty. Search activity for arthritis symptoms (panel (c)) shows no significant effect of cold temperatures, but shows some decrease for markedly hot maximum temperatures. Search activity for our measure of non-musculoskeletal pain, stomach symptoms (panel (d)), indicates an inverse relationship, with search activity increasing in both cold and hot temperatures relative to more mild temperatures. Shaded error bounds represent 95% confidence intervals."}
+# hip
+hip.fe <- felm(hip ~ cuttmax + prcp + I(tmax-tmin) + press + rhum | week_year + city:year | 0 | city + week_year
+           , data=d, exactDOF=TRUE)
+
+hip.p <- ggMarginal(binned.plot(felm.est = hip.fe,
+             plotvar = "cuttmax",
+             breaks = 5,
+             omit = c(25,30),
+             ylimit = c(-26.5,15.5),
+             xlabel = "Mean Weekly Max Temp. in \u2103",
+             ylabel = "Change in Hip Pain Searches",
+             panel = "a",
+             panel.x = -7.5,
+             panel.y = -26.5),
+           data=d,
+           x=d[, tmax],
+           type="histogram",
+           margins="x",
+           size=20,
+           xparams = list(bins = 30, fill = "red", color = 'gray60', alpha=0.75, size=0.1))
+
+# knee 
+knee.fe <- felm(knee ~ cuttmax + prcp + I(tmax-tmin) + press + rhum | week_year + city:year | 0 | city + week_year
+           , data=d, exactDOF=TRUE)
+
+knee.p <- ggMarginal(binned.plot(felm.est = knee.fe,
+             plotvar = "cuttmax",
+             breaks = 5,
+             omit = c(25,30),
+             ylimit = c(-26.5,15.5),
+             xlabel = "Mean Weekly Max Temp. in \u2103",
+             ylabel = "Change in Knee Pain Searches",
+             panel = "b",
+             panel.x = -7.5,
+             panel.y = -26.5),
+           data=d,
+           x=d[, tmax],
+           type="histogram",
+           margins="x",
+           size=20,
+           xparams = list(bins = 30, fill = "red", color = 'gray60', alpha=0.75, size=0.1))
+
+# arthritis 
+arthritis.fe <- felm(arthritis ~ cuttmax + prcp + I(tmax-tmin) + press + rhum | week_year + city:year | 0 | city + week_year
+           , data=d, exactDOF=TRUE)
+
+arthritis.p <- ggMarginal(binned.plot(felm.est = arthritis.fe,
+             plotvar = "cuttmax",
+             breaks = 5,
+             omit = c(25,30),
+             ylimit = c(-26.5,15.5),
+             xlabel = "Mean Weekly Max Temp. in \u2103",
+             ylabel = "Change in Arthritis Searches",
+             panel = "c",
+             panel.x = -7.5,
+             panel.y = -26.5),
+           data=d,
+           x=d[, tmax],
+           type="histogram",
+           margins="x",
+           size=20,
+           xparams = list(bins = 30, fill = "red", color = 'gray60', alpha=0.75, size=0.1))
+
+# stomach 
+stomach.fe <- felm(stomach ~ cuttmax + prcp + I(tmax-tmin) + press + rhum | week_year + city:year | 0 | city + week_year
+           , data=d, exactDOF=TRUE)
+
+stomach.p <- ggMarginal(binned.plot(felm.est = stomach.fe,
+             plotvar = "cuttmax",
+             breaks = 5,
+             omit = c(25,30),
+             ylimit = c(-26.5,15.5),
+             xlabel = "Mean Weekly Max Temp. in \u2103",
+             ylabel = "Change in Stomach Pain Searches",
+             panel = "d",
+             panel.x = -7.5,
+             panel.y = -26.5),
+           data=d,
+           x=d[, tmax],
+           type="histogram",
+           margins="x",
+           size=20,
+           xparams = list(bins = 30, fill = "red", color = 'gray60', alpha=0.75, size=0.1))
+
+# png(filename = '~/Dropbox/nick/climate_pain/rproject/docs/figure1.png', width=25, height=9, units = "in", type="cairo", res=300)
+# cairo_pdf(filename = '~/Dropbox/nick/climate_pain/rproject/docs/figure1.pdf', width=25, height=9)
+grid.arrange(hip.p, knee.p, arthritis.p, stomach.p, ncol=4)
+# dev.off()
+```
+
+# Table for main results
+
+```{r echo=FALSE, eval=TRUE, results='asis'}
+stargazer(hip.fe, knee.fe, arthritis.fe, stomach.fe,
+          type='html',
+          style = 'qje',
+          title = paste0('Regression Table'),
+          model.numbers = TRUE,
+          dep.var.labels.include = TRUE,
+          dep.var.labels = c('Hip', 'Knee', 'Arthritis', 'Stomach'),
+          dep.var.caption = 'Dependent Variable: Search Activity in Pain Category',
+          covariate.labels = gsub('cut','',rownames(hip.fe$coef)),
+          add.lines = list(c("Calendar Week FE", "Yes", "Yes", "Yes", "Yes"), 
+                           c("City:Year FE", "Yes", "Yes", "Yes", "Yes")),
+          notes = c('Standard errors are in parentheses and are clustered on city and week.'),
+          df=FALSE,
+          header=FALSE,
+          digits=3,
+          no.space=T,
+          font.size="footnotesize",
+          column.sep.width="20pt"
+          )
+```
